@@ -1,5 +1,5 @@
 ccxt
-openai
+ollama
 pandas
 schedule
 python-dotenv
