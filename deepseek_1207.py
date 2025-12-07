@@ -1,7 +1,7 @@
 import os
 import time
 import schedule
-from openai import OpenAI
+from ollama import Client
 import ccxt
 import pandas as pd
 import re
@@ -13,9 +13,9 @@ from datetime import datetime, timedelta
 load_dotenv()
 
 # 初始化DeepSeek客户端
-deepseek_client = OpenAI(
-    api_key=os.getenv('DEEPSEEK_API_KEY'),
-    base_url="https://api.deepseek.com"
+deepseek_client = Client(
+    host="https://ollama.com",
+    headers={'Authorization': 'Bearer ' + os.environ.get('OLLAMA_API_KEY')}
 )
 
 # 初始化OKX交易所
@@ -685,20 +685,18 @@ def analyze_with_deepseek(price_data):
     """
 
     try:
-        response = deepseek_client.chat.completions.create(
-            model="deepseek-chat",
-            messages=[
+        messages=[
                 {"role": "system",
                  "content": f"您是一位专业的交易员，专注于{TRADE_CONFIG['timeframe']}周期趋势分析。请结合K线形态和技术指标做出判断，并严格遵循JSON格式要求。"},
-                {"role": "user", "content": prompt}
-            ],
-            stream=False,
-            temperature=0.1
-        )
-
+                {"role": "user", "content": prompt},
+        ],
+       
         # 安全解析JSON
-        result = response.choices[0].message.content
+    
+        for part in deepseek_client.chat('deepseek-v3.2', messages=messages, stream=True):
+            result = part['message']['content']
         print(f"DeepSeek原始回复: {result}")
+        
 
         # 提取JSON部分
         start_idx = result.find('{')
